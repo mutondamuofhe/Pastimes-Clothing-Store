@@ -1,0 +1,5 @@
+Nike Hoodie,Nike,1290,Good,jdoe,images/nike_hoodie.png
+Adidas Shirt,Adidas,890,Excellent,jsmith,images/adidas_shirt.png
+Zara Jacket,Zara,2450,Good,mbrown,images/zara_jacket.png
+Puma Sneakers,Puma,1590,Like New,slee,images/puma_sneakers.png
+H&M Jeans,H&M,950,Good,cwhite,images/hm_jeans.png

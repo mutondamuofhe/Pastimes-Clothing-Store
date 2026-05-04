@@ -1,0 +1,5 @@
+John Doe,j.doe@abc.co.za,jdoe,password123
+Jane Smith,j.smith@abc.co.za,jsmith,password456
+Mike Brown,m.brown@abc.co.za,mbrown,password789
+Sarah Lee,s.lee@abc.co.za,slee,password321
+Chris White,c.white@abc.co.za,cwhite,password654
