@@ -12,29 +12,46 @@ $message = "";
 
 if(isset($_POST['upload'])){
 
-    $name = $_POST['name'];
-    $brand = $_POST['brand'];
-    $price = $_POST['price'];
-    $condition = $_POST['condition'];
+    $name = trim($_POST['name']);
+    $brand = trim($_POST['brand']);
+    $price = trim($_POST['price']);
+    $condition = trim($_POST['condition']);
+    $description = trim($_POST['description']);
     $username = $_SESSION['user'];
 
-    // IMAGE UPLOAD
-    $imageName = $_FILES['image']['name'];
+    $imageName = basename($_FILES['image']['name']);
     $tempName = $_FILES['image']['tmp_name'];
-
     $folder = "images/" . $imageName;
+    $imageURL = 'images/homephoto.png';
 
-    move_uploaded_file($tempName, $folder);
+    if(!empty($imageName) && move_uploaded_file($tempName, $folder)){
+        $imageURL = $folder;
+    }
 
-    // INSERT INTO DATABASE
-    $sql = "INSERT INTO tblClothes (Name, Brand, Price, ConditionType, Username, ImageURL)
-            VALUES ('$name','$brand','$price','$condition','$username','$folder')";
+    $descColumn = false;
+    $columnResult = $conn->query("SHOW COLUMNS FROM tblClothes LIKE 'Description'");
+    if($columnResult && $columnResult->num_rows === 0){
+        $conn->query("ALTER TABLE tblClothes ADD Description TEXT NULL");
+    }
+    $checkDesc = $conn->query("SHOW COLUMNS FROM tblClothes LIKE 'Description'");
+    if($checkDesc && $checkDesc->num_rows > 0){
+        $descColumn = true;
+    }
 
-    if($conn->query($sql)){
+    if($descColumn){
+        $stmt = $conn->prepare("INSERT INTO tblClothes (Name, Brand, Price, ConditionType, Username, ImageURL, Description) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('ssdssss', $name, $brand, $price, $condition, $username, $imageURL, $description);
+    } else {
+        $stmt = $conn->prepare("INSERT INTO tblClothes (Name, Brand, Price, ConditionType, Username, ImageURL) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param('ssdsss', $name, $brand, $price, $condition, $username, $imageURL);
+    }
+
+    if($stmt->execute()){
         $message = "Product uploaded successfully!";
     } else {
         $message = "Error: " . $conn->error;
     }
+    $stmt->close();
 }
 ?>
 
@@ -76,6 +93,9 @@ if(isset($_POST['upload'])){
 
     <label>Condition</label>
     <input type="text" name="condition" placeholder="e.g. Good, Like New" required>
+
+    <label>Description</label>
+    <input type="text" name="description" placeholder="Add a short description" required>
 
     <label>Upload Image</label>
     <input type="file" name="image" required>

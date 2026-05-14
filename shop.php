@@ -2,6 +2,49 @@
 session_start();
 include 'DBConn.php';
 
+if(!isset($_SESSION['cart'])){
+    $_SESSION['cart'] = [];
+}
+
+$message = "";
+if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart'])){
+    $clothesID = intval($_POST['clothesID']);
+    $quantity = max(1, intval($_POST['quantity']));
+
+    $stmt = $conn->prepare("SELECT ClothesID, Name, Brand, Price, ImageURL FROM tblClothes WHERE ClothesID = ?");
+    $stmt->bind_param('i', $clothesID);
+    $stmt->execute();
+    $itemResult = $stmt->get_result();
+
+    if($itemResult && $itemResult->num_rows > 0){
+        $item = $itemResult->fetch_assoc();
+
+        if(isset($_SESSION['cart'][$clothesID])){
+            $_SESSION['cart'][$clothesID]['quantity'] += $quantity;
+        } else {
+            $_SESSION['cart'][$clothesID] = [
+                'id' => $item['ClothesID'],
+                'name' => $item['Name'],
+                'brand' => $item['Brand'],
+                'price' => floatval($item['Price']),
+                'image' => $item['ImageURL'],
+                'quantity' => $quantity,
+            ];
+        }
+
+        $message = htmlspecialchars($item['Name']) . " has been added to your bag.";
+    } else {
+        $message = "Unable to add this item to the bag.";
+    }
+
+    $stmt->close();
+}
+
+$cartCount = 0;
+foreach($_SESSION['cart'] as $cartItem){
+    $cartCount += $cartItem['quantity'];
+}
+
 $sql = "SELECT * FROM tblClothes";
 $result = $conn->query($sql);
 ?>
@@ -14,9 +57,52 @@ $result = $conn->query($sql);
 
     <style>
         .shop-container {
-            padding: 100px 20px;
+            padding: 140px 20px 40px;
             background: #ffffff;
             min-height: 100vh;
+        }
+
+        .shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+            max-width: 1400px;
+            margin: 0 auto 24px;
+        }
+
+        .shop-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 28px;
+        }
+
+        .cart-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 18px;
+            border-radius: 999px;
+            background: #dca35c;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            border: 2px solid transparent;
+        }
+
+        .cart-link:hover {
+            background: #b7833c;
+        }
+
+        .success-message {
+            max-width: 1400px;
+            margin: 0 auto 20px;
+            padding: 14px 18px;
+            background: #e8f5e9;
+            color: #25612b;
+            border-radius: 15px;
+            border: 1px solid #c3e6cb;
         }
 
         .products {
@@ -34,6 +120,7 @@ $result = $conn->query($sql);
             border-radius: 8px;
             overflow: hidden;
             transition: transform 0.3s ease;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
         }
 
         .product-card:hover {
@@ -43,7 +130,7 @@ $result = $conn->query($sql);
         .product-image-container {
             position: relative;
             width: 100%;
-            height: 380px;
+            height: 320px;
             background: #f5f1ed;
             overflow: hidden;
         }
@@ -84,7 +171,7 @@ $result = $conn->query($sql);
         }
 
         .product-name {
-            font-size: 16px;
+            font-size: 18px;
             color: #333;
             margin-bottom: 12px;
             font-weight: 600;
@@ -95,13 +182,6 @@ $result = $conn->query($sql);
             color: #cc9933;
             font-weight: 700;
             margin-bottom: 14px;
-        }
-
-        .product-options {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
         }
 
         .product-btn {
@@ -123,6 +203,10 @@ $result = $conn->query($sql);
             background: #333;
             color: white;
         }
+
+        .product-form {
+            margin: 0;
+        }
     </style>
 </head>
 
@@ -136,13 +220,20 @@ $result = $conn->query($sql);
         <a href="index.php">Home</a>
         <a href="shop.php" class="active">Shop</a>
         <a class="login-btn" href="logout.php">Logout</a>
+        <a class="cart-link" href="cart.php">🛒 Bag (<?php echo $cartCount; ?>)</a>
     </div>
 </nav>
 
 <!-- SHOP -->
 <div class="shop-container">
+    <div class="shop-header">
+        <h2>Available Clothes</h2>
+        <a class="cart-link" href="cart.php">View Bag (<?php echo $cartCount; ?>)</a>
+    </div>
 
-    <h2 style="text-align:center; color: #333; margin-bottom: 40px; font-size: 28px;">Available Clothes</h2>
+    <?php if($message !== ""): ?>
+        <p class="success-message"><?php echo $message; ?></p>
+    <?php endif; ?>
 
     <div class="products">
 
@@ -160,7 +251,11 @@ $result = $conn->query($sql);
                         <div class='product-brand'>" . htmlspecialchars($row['Brand']) . "</div>
                         <div class='product-name'>" . htmlspecialchars($row['Name']) . "</div>
                         <div class='product-price'>R " . htmlspecialchars(number_format($row['Price'], 2)) . "</div>
-                        <button class='product-btn'>Add to Bag</button>
+                        <form method='POST' class='product-form'>
+                            <input type='hidden' name='clothesID' value='" . intval($row['ClothesID']) . "'>
+                            <input type='hidden' name='quantity' value='1'>
+                            <button class='product-btn' type='submit' name='add_to_cart'>Add to Bag</button>
+                        </form>
                     </div>
                 </div>
                 ";

@@ -50,13 +50,21 @@ nav .nav-links a {
 }
 
 nav .nav-links a:hover,
-nav .nav-links a.login-btn:hover {
+nav .nav-links a.login-btn:hover,
+nav .nav-links a.cart-link:hover {
     background: rgba(218, 162, 86, 0.15);
 }
 
-nav .nav-links a.login-btn {
+nav .nav-links a.login-btn,
+nav .nav-links a.cart-link {
     background: #dca35c;
     color: white;
+}
+
+nav .nav-links a.cart-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .logo {

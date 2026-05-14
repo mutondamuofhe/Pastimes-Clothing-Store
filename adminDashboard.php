@@ -8,20 +8,47 @@ if(!isset($_SESSION['admin'])){
 }
 
 if(isset($_POST['addUser'])){
-    $name = $_POST['name'];
-    $email = $_POST['email'];
-    $username = $_POST['username'];
+    $name = trim($_POST['name']);
+    $email = trim($_POST['email']);
+    $username = trim($_POST['username']);
     $password = md5($_POST['password']);
 
-    $sql = "INSERT INTO tblUser (Name, Email, Username, Password, IsVerified, Role)
-            VALUES ('$name','$email','$username','$password',1,'user')";
+    $stmt = $conn->prepare("INSERT INTO tblUser (Name, Email, Username, Password, IsVerified, Role) VALUES (?, ?, ?, ?, 1, 'customer')");
+    $stmt->bind_param('ssss', $name, $email, $username, $password);
 
-    if($conn->query($sql)){
+    if($stmt->execute()){
         $message = "User added successfully!";
     } else {
-        $message = "Error: " . $conn->error;
+        $message = "Error adding user: " . $conn->error;
     }
+    $stmt->close();
 }
+
+if(isset($_POST['addProduct'])){
+    $name = trim($_POST['product_name']);
+    $brand = trim($_POST['product_brand']);
+    $price = trim($_POST['product_price']);
+    $condition = trim($_POST['product_condition']);
+    $imageURL = trim($_POST['product_image']);
+
+    if(empty($imageURL)){
+        $imageURL = 'images/homephoto.png';
+    }
+
+    $stmt = $conn->prepare("INSERT INTO tblClothes (Name, Brand, Price, ConditionType, Username, ImageURL) VALUES (?, ?, ?, ?, 'admin', ?)");
+    $stmt->bind_param('ssdss', $name, $brand, $price, $condition, $imageURL);
+
+    if($stmt->execute()){
+        $message = "Product added successfully!";
+    } else {
+        $message = "Error adding product: " . $conn->error;
+    }
+    $stmt->close();
+}
+
+$userResult = $conn->query("SELECT * FROM tblUser");
+$productResult = $conn->query("SELECT * FROM tblClothes ORDER BY CreatedAt DESC");
+$orderResult = $conn->query("SELECT * FROM tblOrder ORDER BY OrderDate DESC");
 ?>
 
 <!DOCTYPE html>
@@ -62,6 +89,16 @@ if(isset($_POST['addUser'])){
             <button type="submit" name="addUser">Add User</button>
         </form>
 
+        <h3>Add New Product</h3>
+        <form method="POST" class="form-grid">
+            <input type="text" name="product_name" placeholder="Product Name" required>
+            <input type="text" name="product_brand" placeholder="Brand" required>
+            <input type="number" step="0.01" name="product_price" placeholder="Price" required>
+            <input type="text" name="product_condition" placeholder="Condition" required>
+            <input type="text" name="product_image" placeholder="Image URL" required>
+            <button type="submit" name="addProduct">Add Product</button>
+        </form>
+
         <h3>All Users</h3>
 
         <table class="admin-table">
@@ -99,6 +136,70 @@ if(isset($_POST['addUser'])){
                 }
             } else {
                 echo "<tr><td colspan='6'>No users found.</td></tr>";
+            }
+            ?>
+        </table>
+
+        <h3>Inventory</h3>
+        <table class="admin-table">
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Brand</th>
+                <th>Price</th>
+                <th>Condition</th>
+                <th>Seller</th>
+                <th>Actions</th>
+            </tr>
+            <?php
+            if($productResult && $productResult->num_rows > 0){
+                while($product = $productResult->fetch_assoc()){
+                    echo "<tr>
+                        <td>".intval($product['ClothesID'])."</td>
+                        <td>".htmlspecialchars($product['Name'])."</td>
+                        <td>".htmlspecialchars($product['Brand'])."</td>
+                        <td>R " . htmlspecialchars(number_format($product['Price'], 2)) . "</td>
+                        <td>".htmlspecialchars($product['ConditionType'])."</td>
+                        <td>".htmlspecialchars($product['Username'])."</td>
+                        <td>
+                            <a class='action-btn edit-btn' href='editProduct.php?id=".intval($product['ClothesID'])."'>Edit</a>
+                            <a class='action-btn delete-btn' href='deleteProduct.php?id=".intval($product['ClothesID'])."' onclick='return confirm(\"Delete this product?\")'>Delete</a>
+                        </td>
+                    </tr>";
+                }
+            } else {
+                echo "<tr><td colspan='7'>No products found.</td></tr>";
+            }
+            ?>
+        </table>
+
+        <h3>Orders</h3>
+        <table class="admin-table">
+            <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            <?php
+            if($orderResult && $orderResult->num_rows > 0){
+                while($order = $orderResult->fetch_assoc()){
+                    $statusClass = strtolower($order['Status']) === 'delivered' ? 'status-verified' : 'status-not';
+                    echo "<tr>
+                        <td>".intval($order['OrderID'])."</td>
+                        <td>".htmlspecialchars($order['UserID'])."</td>
+                        <td>".htmlspecialchars($order['OrderDate'])."</td>
+                        <td class='$statusClass'>".htmlspecialchars($order['Status'])."</td>
+                        <td>
+                            <a class='action-btn verify-btn' href='updateOrder.php?id=".intval($order['OrderID'])."&status=Pending'>Pending</a>
+                            <a class='action-btn edit-btn' href='updateOrder.php?id=".intval($order['OrderID'])."&status=Shipped'>Shipped</a>
+                            <a class='action-btn delete-btn' href='updateOrder.php?id=".intval($order['OrderID'])."&status=Delivered'>Delivered</a>
+                        </td>
+                    </tr>";
+                }
+            } else {
+                echo "<tr><td colspan='5'>No orders available.</td></tr>";
             }
             ?>
         </table>

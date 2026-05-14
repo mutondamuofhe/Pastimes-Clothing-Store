@@ -47,6 +47,39 @@ if(isset($_POST['setup'])){
         $message .= "✗ Error creating tblAdmin: " . $conn->error . "<br>";
     }
 
+    // Create tblClothes
+    $sql = "CREATE TABLE tblClothes (
+        ClothesID INT AUTO_INCREMENT PRIMARY KEY,
+        Name VARCHAR(100) NOT NULL,
+        Brand VARCHAR(50) NOT NULL,
+        Price DECIMAL(10,2) NOT NULL,
+        ConditionType VARCHAR(50) NOT NULL,
+        Username VARCHAR(50) NOT NULL,
+        ImageURL VARCHAR(255) NOT NULL DEFAULT 'images/homephoto.png',
+        Description TEXT NULL,
+        CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB";
+
+    if ($conn->query($sql) === TRUE) {
+        $message .= "✓ tblClothes created successfully.<br>";
+    } else {
+        $message .= "✗ Error creating tblClothes: " . $conn->error . "<br>";
+    }
+
+    // Create tblOrder
+    $sql = "CREATE TABLE tblOrder (
+        OrderID INT AUTO_INCREMENT PRIMARY KEY,
+        UserID VARCHAR(100) NOT NULL,
+        OrderDate DATE NOT NULL,
+        Status VARCHAR(50) NOT NULL
+    ) ENGINE=InnoDB";
+
+    if ($conn->query($sql) === TRUE) {
+        $message .= "✓ tblOrder created successfully.<br>";
+    } else {
+        $message .= "✗ Error creating tblOrder: " . $conn->error . "<br>";
+    }
+
     // Insert default admin
     $adminPassword = md5('admin123');
     if($conn->query("INSERT INTO tblAdmin (Name, Email, Username, Password) VALUES ('Admin User', 'admin@pastimes.local', 'admin', '$adminPassword')")){
